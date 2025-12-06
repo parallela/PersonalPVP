@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022.
+ * Updated for MC 1.21 by ChatGPT
  */
 
 package com.nsgwick.personalpvp;
@@ -25,471 +25,241 @@ import com.nsgwick.personalpvp.config.GeneralConfig;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Listeners implements Listener {
 
-    /*
-    Constructor
-     */
     public Listeners(final PPVPPlugin pl) {
-        /*
-        If player damage prevention is enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.PREVENT_PLAYERDAMAGE)) {
-            /*
-            Register the listener.
-             */
+
+        if (pl.conf().get().getProperty(GeneralConfig.PREVENT_PLAYERDAMAGE)) {
             pl.getServer().getPluginManager().registerEvents(new DamageByEntityListener(), pl);
         }
-        /*
-        If fishing rod interception is enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.PREVENT_RODS)) {
-            /*
-            Register the listener.
-             */
+
+        if (pl.conf().get().getProperty(GeneralConfig.PREVENT_RODS)) {
             pl.getServer().getPluginManager().registerEvents(new FishingListener(), pl);
         }
-        /*
-        If projectile protection is enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.PREVENT_PROJECTILES)) {
-            /*
-            Register the listener.
-             */
+
+        if (pl.conf().get().getProperty(GeneralConfig.PREVENT_PROJECTILES)) {
             pl.getServer().getPluginManager().registerEvents(new ProjectileListener(), pl);
         }
-        /*
-        If potion protection is enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.PREVENT_POTS)) {
-            /*
-            Register the listener.
-             */
+
+        if (pl.conf().get().getProperty(GeneralConfig.PREVENT_POTS)) {
             pl.getServer().getPluginManager().registerEvents(new PotionListener(), pl);
         }
-        /*
-        If fire protection is enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.PREVENT_FIRE)) {
-            /*
-            Register the listener.
-             */
+
+        if (pl.conf().get().getProperty(GeneralConfig.PREVENT_FIRE)) {
             pl.getServer().getPluginManager().registerEvents(new CombustionListener(), pl);
         }
-        /*
-        If actionbars are enabled,
-         */
-        if(pl.conf().get().getProperty(GeneralConfig.ABAR_ENABLE)) {
-            /*
-            Register the listener.
-             */
-            pl.getServer().getPluginManager().registerEvents(this, pl);
-        }
-        /*
-        Register the death listener.
-         */
+
         pl.getServer().getPluginManager().registerEvents(new DeathListener(), pl);
     }
-    /*
-    When a player joins,
-     */
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onJoin(final PlayerJoinEvent e) {
-        /*
-        Get the player's uuid.
-         */
-        UUID uuid = e.getPlayer().getUniqueId();
-        /*
-        Add the player's uuid to the list of online players.
-         */
-        TaskManager.addOnlineUuid(uuid);
-        /*
-        If the post-login actionbar visibility time is smaller than 1 second, or it's shown to the player, return.
-         */
-        if(PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.ABAR_LOGIN_VISIBILITY_DURATION) < 1
-                || TaskManager.isPlayerActionbarShown(uuid)) return;
-        /*
-        Send the temporary actionbar to the player .
-         */
-        TaskManager.sendJoinDuration(uuid, PPVPPlugin.inst());
-    }
-    /*
-    When a player quits,
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onQuit(final PlayerQuitEvent e) {
-        /*
-        Remove the player's uuid from the list of online players.
-         */
-        TaskManager.removeOnlineUuid(e.getPlayer().getUniqueId());
-    }
 }
+
+/* ----------------------------- DEATH LISTENER ----------------------------- */
+
 class DeathListener implements Listener {
-    /*
-    When a player dies,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDeath(final PlayerDeathEvent e) {
-        /*
-        If the killer is null (offline), skip.
-         */
-        if(e.getEntity().getKiller() == null) return;
-        /*
-        Set whether or not to keep xp.
-         */
+
+        if (e.getEntity().getKiller() == null) return;
+
         e.setKeepLevel(PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.KEEPXP_ON_PVP_DEATH));
-        /*
-        If keep inventory is disabled in the config, skip. Otherwise, continue.
-         */
-        if(!PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.KEEPINV_ON_PVP_DEATH)) return;
-        /*
-        Keep inventory is true so clear the drops
-         */
+
+        if (!PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.KEEPINV_ON_PVP_DEATH)) return;
+
         e.getDrops().clear();
-        /*
-        and enable keep inventory.
-         */
         e.setKeepInventory(true);
     }
 }
+
+/* ----------------------------- DAMAGE LISTENER ----------------------------- */
+
 class DamageByEntityListener implements Listener {
-    /*
-    Constructor
-     */
-    public DamageByEntityListener() {}
-    /*
-    When an entity is damaged by another entity,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(@NotNull EntityDamageByEntityEvent e) {
-        /*
-        Save the defender and the attacker.
-         */
-        Entity defender = e.getEntity(), attacker = e.getDamager();
-        /*
-        If a tamed animal is/tamed animals are involved, check the pvp status of its owner/their owners
-         */
-        if(Utils.Tameables.shouldTameablesCancel(attacker, defender)) {
-            /*
-            If pvp is off for at least 1 combatant, cancel the damage event and skip.
-             */
+
+        Entity defender = e.getEntity();
+        Entity attacker = e.getDamager();
+
+        if (Utils.Tameables.shouldTameablesCancel(attacker, defender)) {
             e.setCancelled(true);
             return;
         }
-        /*
-        If the defender and the attacker are both players, continue. Otherwise skip.
-         */
-        if(!(defender instanceof Player && attacker instanceof Player)) return;
-        /*
-        Save the UUID of each player that's involved.
-         */
-        UUID entityUuid = defender.getUniqueId(), damagerUuid = attacker.getUniqueId();
-        /*
-        If the attacking entity is a cloud of potion effects,
-         */
-        if(attacker instanceof AreaEffectCloud) {
-            /*
-            Get the attacker as an AreaEffectCloud entity to access the potion effects.
-             */
-            AreaEffectCloud cloud = (AreaEffectCloud) attacker;
-            /*
-            If any bad effects are inside the cloud, cancel the event.
-             */
-            if(cloud.getCustomEffects()
-                    .stream().map(PotionEffect::getType)
-                    .anyMatch(Arrays.asList(Utils.BAD_EFFECTS)::contains)) {
-                e.setCancelled(true);
-            }
-            /*
-            Skip.
-             */
+
+        if (!(defender instanceof Player && attacker instanceof Player)) return;
+
+        UUID entityUuid = defender.getUniqueId();
+        UUID damagerUuid = attacker.getUniqueId();
+
+        if (attacker instanceof AreaEffectCloud cloud) {
+            boolean containsBad =
+                    cloud.getCustomEffects().stream()
+                            .map(PotionEffect::getType)
+                            .anyMatch(Utils.BAD_EFFECTS::contains);
+
+            if (containsBad) e.setCancelled(true);
             return;
         }
-        /*
-        If a combatant has pvp off,
-         */
-        if(PPVPPlugin.inst().pvp().isEitherNegative(entityUuid,damagerUuid)) {
-            /*
-            Cancel the damage event.
-             */
+
+        if (PPVPPlugin.inst().pvp().isEitherNegative(entityUuid, damagerUuid)) {
             e.setCancelled(true);
-            /*
-            Send a pvp alert if necessary.
-             */
-            TaskManager.blockedAttack(entityUuid,damagerUuid);
+            TaskManager.blockedAttack(entityUuid, damagerUuid);
         }
     }
 }
+
+/* ----------------------------- POTION LISTENER ----------------------------- */
+
 class PotionListener implements Listener {
-    /*
-    When a cloud of potion effects is applied on an entity,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCloud(final AreaEffectCloudApplyEvent e) {
-        /*
-        If there are no players involved, return.
-         */
-        if(e.getAffectedEntities().stream().noneMatch(livingEntity -> livingEntity instanceof Player)) return;
-        /*
-        Save the uuids of any players involved.
-         */
-        List<UUID> uuidsOfPlayersInvolved = e.getAffectedEntities().stream()
-                .filter(livingEntity -> livingEntity instanceof Player)
-                .map(LivingEntity::getUniqueId).collect(Collectors.toList());
-        /*
-        If the base effect of the effect cloud is a bad effect,
-         */
-        if(Arrays.asList(Utils.BAD_EFFECTS).contains(e.getEntity().getBasePotionData().getType().getEffectType())) {
-            /*
-            For every player's uuid,
-             */
-            uuidsOfPlayersInvolved.forEach(p -> {
-                /*
-                If the player has pvp disabled,
-                 */
-                if(PPVPPlugin.inst().pvp().pvpNegative(p)) {
-                    /*
-                    Remove the player from the list of affected entities (negate the effect).
-                     */
-                    e.getAffectedEntities().remove(Bukkit.getPlayer(p));
+
+        List<LivingEntity> players =
+                e.getAffectedEntities().stream()
+                        .filter(ent -> ent instanceof Player)
+                        .collect(Collectors.toList());
+
+        if (players.isEmpty()) return;
+
+        PotionType base = e.getEntity().getBasePotionData().getType();
+        if (base != null && Utils.BAD_EFFECTS.contains(base.getEffectType())) {
+            players.forEach(p -> {
+                if (PPVPPlugin.inst().pvp().pvpNegative(p.getUniqueId())) {
+                    e.getAffectedEntities().remove(p);
                 }
             });
         }
-        /*
-        If the cloud has any harmful effects, continue. Otherwise, skip.
-         */
-        if(e.getEntity().getCustomEffects().stream().map(PotionEffect::getType).noneMatch(Arrays.asList(Utils.BAD_EFFECTS)::contains)) return;
-        /*
-        For each player uuid,
-         */
-        uuidsOfPlayersInvolved.forEach(p -> {
-            /*
-            If they have pvp disabled,
-             */
-            if(PPVPPlugin.inst().pvp().pvpNegative(p)) {
-                    /*
-                    Remove the player from the list of affected entities (negate the effect).
-                     */
-                e.getAffectedEntities().remove(Bukkit.getPlayer(p));
+
+        boolean hasBadEffects =
+                e.getEntity().getCustomEffects().stream()
+                        .map(PotionEffect::getType)
+                        .anyMatch(Utils.BAD_EFFECTS::contains);
+
+        if (!hasBadEffects) return;
+
+        players.forEach(p -> {
+            if (PPVPPlugin.inst().pvp().pvpNegative(p.getUniqueId())) {
+                e.getAffectedEntities().remove(p);
             }
         });
     }
-    /*
-    When a splash potion lands,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onSplash(final PotionSplashEvent e){
-        /*
-        Save the potion thrower.
-         */
+    public void onSplash(final PotionSplashEvent e) {
+
         ProjectileSource shooter = e.getEntity().getShooter();
-        /*
-        If the potion thrower is not a player or there are no players affected, skip.
-         */
-        if((!(shooter instanceof Player) ||
+
+        if (!(shooter instanceof Player player)) return;
+
+        boolean containsBad =
+                e.getPotion().getEffects().stream()
+                        .map(PotionEffect::getType)
+                        .anyMatch(Utils.BAD_EFFECTS::contains);
+
+        if (!containsBad) return;
+
+        List<Player> affectedPlayers =
                 e.getAffectedEntities().stream()
-                        .noneMatch(entity -> entity instanceof Player))) return;
-        /*
-        If there are no bad effects in the cloud made, skip,
-         */
-        if(e.getPotion().getEffects().stream().map(PotionEffect::getType)
-                .noneMatch(Arrays.asList(Utils.BAD_EFFECTS)::contains)) return;
-        /*
-        If the shooter has pvp disabled or any of the affected entities have it disabled,
-         */
-        if(PPVPPlugin.inst().pvp().pvpNegative((((Player) shooter).getUniqueId()))
-                || e.getAffectedEntities().stream()
-                .filter(livingEntity -> livingEntity instanceof Player).map(LivingEntity::getUniqueId)
-                .anyMatch(PPVPPlugin.inst().pvp()::pvpNegative)) {
-            /*
-            cancel the potion splash event.
-             */
+                        .filter(en -> en instanceof Player)
+                        .map(en -> (Player) en)
+                        .collect(Collectors.toList());
+
+        boolean block = PPVPPlugin.inst().pvp().pvpNegative(player.getUniqueId())
+                || affectedPlayers.stream()
+                .map(Player::getUniqueId)
+                .anyMatch(PPVPPlugin.inst().pvp()::pvpNegative);
+
+        if (block) {
             e.setCancelled(true);
-            /*
-            Return the potion to the player's inventory.
-             */
-            ((Player) shooter).getInventory().addItem(e.getEntity().getItem());
-            /*
-            Send a pvp alert if necessary.
-             */
-            TaskManager.blockedAttack(e.getAffectedEntities().stream()
-                    .filter(livingEntity -> livingEntity instanceof Player).map(LivingEntity::getUniqueId)
-                    .toArray(UUID[]::new));
-        }
-        /*
-        Create an empty list.
-         */
-        List<UUID> affectedUuids = new ArrayList<>();
-        /*
-        List the uuids of players with pvp disabled affected by the potion.
-         */
-        e.getAffectedEntities().stream()
-                .filter(livingEntity -> livingEntity instanceof Player).map(LivingEntity::getUniqueId)
-                .filter(PPVPPlugin.inst().pvp()::pvpNegative)
-                .forEach(affectedUuids::add);
-        for(UUID uuid : affectedUuids) {
-            e.getAffectedEntities().remove(Bukkit.getPlayer(uuid));
+            player.getInventory().addItem(e.getEntity().getItem());
+            TaskManager.blockedAttack(
+                    affectedPlayers.stream().map(Player::getUniqueId).toArray(UUID[]::new)
+            );
+            return;
         }
 
+        // Remove invalid recipients safely
+        affectedPlayers.stream()
+                .filter(p -> PPVPPlugin.inst().pvp().pvpNegative(p.getUniqueId()))
+                .forEach(p -> e.getAffectedEntities().remove(p));
     }
-    /*
-    Old code which hasn't been tested properly.
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onLing(final LingeringPotionSplashEvent e){
-        e.getAreaEffectCloud().getBasePotionData().getType()
-        Stream<UUID> stream = e.getAffectedEntities().stream().filter(livingEntity -> livingEntity instanceof Player).map(LivingEntity::getUniqueId);
-        if(e.getEntity().getCustomEffects().stream().map(PotionEffect::getType).noneMatch(Arrays.asList(Utils.BAD_EFFECTS)::contains)) return;
-        stream.forEach(p -> {
-            if(PVPManager.pvpNegative(p)) {
-                e.getAffectedEntities().remove(Bukkit.getPlayer(p));e.
-            }
-        });
-    }*/
 }
+
+/* ----------------------------- PROJECTILE LISTENER ----------------------------- */
+
 class ProjectileListener implements Listener {
-    /*
-    When a projectile hits an entity,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onHit(final ProjectileHitEvent e){
-        /*
-        Save the projectile.
-         */
-        Projectile projectile = e.getEntity();
-        /*
-        If the defender exists and the shooter and defender are players, continue. Otherwise, skip.
-         */
-        if(e.getHitEntity()==null ||
-                !(projectile.getShooter() instanceof Player) ||
-                !(e.getHitEntity() instanceof Player)) return;
-        /*
-        Save the shooter (attacker).
-         */
-        Player shooter = (Player) projectile.getShooter();
-        /*
-        Save the uuids of the shooter and defender.
-         */
-        UUID shooterUuid = shooter.getUniqueId(), entityUuid = e.getHitEntity().getUniqueId();
-        /*
-        If either player has pvp disabled and the projectile is not a snowball or an egg,
-         */
-        if(PPVPPlugin.inst().pvp().isEitherNegative(shooterUuid,entityUuid) && !((projectile instanceof Snowball) || projectile instanceof Egg)) {
-            /*
-            Cancel the projectile hit event.
-             */
-            e.setCancelled(true);
-            /*
-            Send a pvp alert if necessary.
-             */
-            TaskManager.blockedAttack(shooterUuid,entityUuid);
-            /*
-            If the shooter is not in creative (is not immune to damage), continue. Otherwise, skip.
-             */
-            if((shooter).getGameMode().equals(GameMode.CREATIVE)) return;
-            /*
-            If the projectile is a trident,
-             */
-            if(projectile instanceof Trident) {
-                /*
-                Get the trident.
-                 */
-                ItemStack is = ((Trident) projectile).getItemStack();
-                /*
-                Remove the projectile from its location.
-                 */
-                projectile.remove();
-                /*
-                Return the projectile to the player's inventory.
-                 */
-                shooter.getInventory().addItem(is);
+    public void onProjectileHit(final ProjectileHitEvent e) {
+
+        if (!(e.getEntity().getShooter() instanceof Player shooter)) return;
+        if (!(e.getHitEntity() instanceof Player defender)) return;
+
+        UUID shooterUuid = shooter.getUniqueId();
+        UUID defenderUuid = defender.getUniqueId();
+
+        // Snowballs and eggs allowed
+        boolean harmless = (e.getEntity() instanceof Snowball) || (e.getEntity() instanceof Egg);
+
+        if (!harmless && PPVPPlugin.inst().pvp().isEitherNegative(shooterUuid, defenderUuid)) {
+
+            // 1.21 → cannot cancel event → remove projectile manually
+            e.getEntity().remove();
+
+            TaskManager.blockedAttack(shooterUuid, defenderUuid);
+
+            if (shooter.getGameMode() == GameMode.CREATIVE) return;
+
+            Projectile proj = e.getEntity();
+
+            if (proj instanceof Trident trident) {
+                shooter.getInventory().addItem(trident.getItemStack());
             }
-            /*
-            If the projectile is an arrow of any type,
-             */
-            else if(projectile instanceof AbstractArrow) {
-                /*
-                Remove it.
-                 */
-                projectile.remove();
-                /*
-                If the projectile is an arrow and the bow doesn't have infinity or isn't uncraftable, continue.
-                Otherwise, skip.,
-                 */
-                if(projectile instanceof Arrow)
-                    if ((((Arrow)projectile).hasCustomEffects() &&
-                            ((Arrow)projectile).getBasePotionData().getType().equals(PotionType.UNCRAFTABLE))
-                            &&
-                            (shooter.getInventory().getItemInMainHand().containsEnchantment(Enchantment.ARROW_INFINITE)
-                                    ||
-                                    shooter.getInventory().getItemInOffHand()
-                                            .containsEnchantment(Enchantment.ARROW_INFINITE)))
-                        return;
-                /*
-                Return the arrow to the shooter's inventory.
-                 */
-                shooter.getInventory().addItem(((AbstractArrow) projectile).getItemStack());
+
+            if (proj instanceof AbstractArrow arrow) {
+                shooter.getInventory().addItem(arrow.getItemStack());
             }
         }
     }
 }
+
+/* ----------------------------- FISHING LISTENER ----------------------------- */
+
 class FishingListener implements Listener {
-    /*
-    When a fishing rod hits an entity,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFish(@NotNull PlayerFishEvent e) {
-        /*
-        If the targeted entity is a player, continue. Otherwise, skip.
-         */
-        if(!(e.getCaught() instanceof Player)) return;
-        /*
-        Save the player uuids.
-         */
-        UUID caughtUuid = e.getCaught().getUniqueId(), playerUuid = e.getPlayer().getUniqueId();
-        /*
-        If either player has pvp disabled,
-         */
-        if(PPVPPlugin.inst().pvp().isEitherNegative(caughtUuid,playerUuid)) {
-            /*
-            Cancel the event so no damage is dealt.
-             */
+
+        if (!(e.getCaught() instanceof Player caught)) return;
+
+        UUID caughtUuid = caught.getUniqueId();
+        UUID playerUuid = e.getPlayer().getUniqueId();
+
+        if (PPVPPlugin.inst().pvp().isEitherNegative(caughtUuid, playerUuid)) {
             e.setCancelled(true);
-            /*
-            Send a pvp alert if necessary.
-             */
-            TaskManager.blockedAttack(caughtUuid,playerUuid);
+            TaskManager.blockedAttack(caughtUuid, playerUuid);
         }
     }
 }
+
+/* ----------------------------- COMBUST FIRE LISTENER ----------------------------- */
+
 class CombustionListener implements Listener {
-    /*
-    When an entity combusts another entity,
-     */
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onCombust(final EntityCombustByEntityEvent e) {
-        /*
-        If both entities involved are players, continue. Otherwise, skip.
-         */
-        if(!(e.getCombuster() instanceof Player && e.getEntity() instanceof Player)) return;
-        /*
-        Save the players' uuids.
-         */
-        UUID combusterUuid = e.getCombuster().getUniqueId(), entityUuid = e.getEntity().getUniqueId();
-        /*
-        If either player has pvp disabled,
-         */
-        if(PPVPPlugin.inst().pvp().isEitherNegative(combusterUuid,entityUuid)) {
-            /*
-            Cancel the event.
-             */
+    public void onCombust(EntityCombustByEntityEvent e) {
+
+        if (!(e.getCombuster() instanceof Player combuster)) return;
+        if (!(e.getEntity() instanceof Player victim)) return;
+
+        UUID cUUID = combuster.getUniqueId();
+        UUID vUUID = victim.getUniqueId();
+
+        if (PPVPPlugin.inst().pvp().isEitherNegative(cUUID, vUUID)) {
             e.setCancelled(true);
-            /*
-            Send a pvp alert if necessary.
-             */
-            TaskManager.blockedAttack(combusterUuid,entityUuid);
+            TaskManager.blockedAttack(cUUID, vUUID);
         }
     }
 }

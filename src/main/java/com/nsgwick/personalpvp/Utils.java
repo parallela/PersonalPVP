@@ -29,16 +29,16 @@ public class Utils {
     /**
     The list of potion effects to block.
      */
-    public static final PotionEffectType[] BAD_EFFECTS = new PotionEffectType[]{
+    public static final List<PotionEffectType> BAD_EFFECTS = Arrays.asList(
             PotionEffectType.BLINDNESS,
-            PotionEffectType.CONFUSION,
-            PotionEffectType.HARM,
+            PotionEffectType.NAUSEA,
+            PotionEffectType.INSTANT_DAMAGE,
             PotionEffectType.HUNGER,
             PotionEffectType.POISON,
-            PotionEffectType.SLOW,
-            PotionEffectType.SLOW_DIGGING,
+            PotionEffectType.SLOWNESS,
+            PotionEffectType.MINING_FATIGUE,
             PotionEffectType.WEAKNESS
-    };
+    );
 
     /**
     The instance of the main plugin.

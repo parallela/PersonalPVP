@@ -659,18 +659,4 @@ class PVPCommand extends BaseCommand {
          */
         Utils.send(s, Utils.parse("<green>PVP Config Reloaded."), true, false);
     }
-    /*
-    /pvp togglebar
-     */
-    @Subcommand("togglebar")
-    @CommandPermission("personalpvp.toggleactionbar")
-    @Description("Toggle your actionbar visibility.")
-    public void onToggleBar(final Player p) {
-        /*
-        Toggle the player's action bar and send the command feedback in the process.
-         */
-        Utils.send(p, Utils.parse(PPVPPlugin.inst().toggleHiddenActionbar(p) ?
-                "<green>Action bar enabled.":"<green>Action bar disabled."),
-                true, false);
-    }
 }

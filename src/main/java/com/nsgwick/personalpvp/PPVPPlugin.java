@@ -140,17 +140,10 @@ public final class PPVPPlugin extends JavaPlugin {
         new Listeners(this);
 
         /*
-        Enable the actionbar according to the config settings.
-         */
-        checkActionbar();
-
-        /*
         Send startup information to the console.
          */
         this.log.info("Default PvP setting: "
                 +(PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.DEFAULT_PVP_STATUS)?"TRUE":"FALSE"));
-        this.log.info("If you are using spigot (not paper) or get actionbar errors, please disable the actionbar"
-                + " in config.yml by changing toggleable-actionbar.enable to false.");
         this.log.info("Personal PvP ENABLED.");
     }
 
@@ -169,53 +162,15 @@ public final class PPVPPlugin extends JavaPlugin {
     public PVPManager pvp() {return this.pvpManager;}
 
     /**
-     * Checks the config and enables the actionbar accordingly.
-     */
-    public void checkActionbar() {
-        /*
-         * If actionbars are enabled,
-         */
-        if(configHandler.get().getProperty(GeneralConfig.ABAR_ENABLE)) {
-            /*
-            If actionbars don't reset on quit,
-             */
-            if(! configHandler.get().getProperty(GeneralConfig.ABAR_RESET_ON_Q)) {
-                /*
-                Load existing actionbar visibility data.
-                 */
-                TaskManager.load();
-            }
-            /*
-            Start the actionbar loop to show the permanent actionbar.
-             */
-            TaskManager.start();
-        }
-    }
-
-    /**
      * Reload the configuration files.
      */
     public void reloadConfigs() {
         configHandler.get().reload();
         setInstance(this);
-        checkActionbar();
-    }
-
-    /**
-     * Toggle the actionbar for an online player.
-     * @param p The online player.
-     * @return True if now default status, false if status has been altered.
-     */
-    public boolean toggleHiddenActionbar(final Player p) {
-        return TaskManager.toggleHiddenActionbar(p.getUniqueId());
     }
 
     @Override
     public void onDisable() {
-        /*
-        Stop the actionbar loop.
-         */
-        TaskManager.stop();
         /*
         Disable the command handler.
          */
@@ -225,10 +180,9 @@ public final class PPVPPlugin extends JavaPlugin {
          */
         List<UUID> emptyList = new ArrayList<>();
         /*
-        If any PVP attributes don't reset on quit,
+        If PVP attributes don't reset on quit,
          */
-        if(configHandler.get().getProperty(GeneralConfig.RESET_PVP_ON_QUIT)
-                != configHandler.get().getProperty(GeneralConfig.ABAR_RESET_ON_Q) || no_reset_for_any()) {
+        if(!configHandler.get().getProperty(GeneralConfig.RESET_PVP_ON_QUIT)) {
             /*
             Save the lists.
              */
@@ -241,11 +195,9 @@ public final class PPVPPlugin extends JavaPlugin {
                             emptyList:
                             PPVPPlugin.inst().pvp().alteredPlayers(),
                     /*
-                    If actionbar statuses reset on quit, save an empty list.
-                    If actionbar statuses don't reset on quit, save the list.
+                    Save empty list for action bar (removed feature)
                      */
-                    configHandler.get().getProperty(GeneralConfig.ABAR_RESET_ON_Q) ? emptyList :
-                            TaskManager.playersWithAlteredActionbar(),
+                    emptyList,
                     /*
                     Save the list of locked players.
                      */

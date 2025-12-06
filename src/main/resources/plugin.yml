@@ -1,7 +1,7 @@
 name: PersonalPVP
 version: ${project.version}
 main: com.nsgwick.personalpvp.PPVPPlugin
-api-version: 1.17
+api-version: 1.21
 authors: [ nsgw ]
 website: https://github.com/nsgwick
 softdepend: [PlaceholderAPI]
@@ -10,7 +10,6 @@ permissions:
     children:
       - personalpvp.togglepvp
       - personalpvp.pvpcontrol
-      - personalpvp.toggleactionbar
     default: not op
     description: All default permissions.
   personalpvp.togglepvp.*:
@@ -60,7 +59,6 @@ permissions:
       - personalpvp.togglepvp
       - personalpvp.togglepvp.other
       - personalpvp.togglepvp.bypass
-      - personalpvp.toggleactionbar
       - personalpvp.pvpcontrol
       - personalpvp.pvpcontrol.admin
       - personalpvp.pvpcontrol.resetglobal
