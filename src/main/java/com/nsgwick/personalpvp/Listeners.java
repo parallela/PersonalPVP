@@ -205,7 +205,6 @@ class ProjectileListener implements Listener {
 
         if (!harmless && PPVPPlugin.inst().pvp().isEitherNegative(shooterUuid, defenderUuid)) {
 
-            // 1.21 → cannot cancel event → remove projectile manually
             e.setCancelled(true);
 
             TaskManager.blockedAttack(shooterUuid, defenderUuid);
@@ -214,6 +213,8 @@ class ProjectileListener implements Listener {
             Projectile proj = e.getEntity();
 
             if (proj instanceof Trident trident) {
+
+                //dont copy and return if it's got loyalty (even tho with setCancelled above this code is unneeded.
                 if (trident.getLoyaltyLevel()>0){
                 return;
                 }
