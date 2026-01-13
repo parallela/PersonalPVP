@@ -145,6 +145,13 @@ public final class PPVPPlugin extends JavaPlugin {
         this.log.info("Default PvP setting: "
                 +(PPVPPlugin.inst().conf().get().getProperty(GeneralConfig.DEFAULT_PVP_STATUS)?"TRUE":"FALSE"));
         this.log.info("Personal PvP ENABLED.");
+
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new com.nsgwick.personalpvp.managers.PapiManager(this).register();
+            getLogger().info("Hooked into PlaceholderAPI.");
+        } else {
+            getLogger().info("PlaceholderAPI not found; placeholders disabled.");
+        }
     }
 
     /**
