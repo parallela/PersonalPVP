@@ -205,23 +205,8 @@ class ProjectileListener implements Listener {
         boolean harmless = (e.getEntity() instanceof Snowball) || (e.getEntity() instanceof Egg);
 
         if (!harmless && PPVPPlugin.inst().pvp().isEitherNegative(shooterUuid, defenderUuid)) {
-
-            // 1.21 → cannot cancel event → remove projectile manually
-            e.getEntity().remove();
-
+            e.setCancelled(true);
             TaskManager.blockedAttack(shooterUuid, defenderUuid);
-
-            if (shooter.getGameMode() == GameMode.CREATIVE) return;
-
-            Projectile proj = e.getEntity();
-
-            if (proj instanceof Trident trident) {
-                shooter.getInventory().addItem(trident.getItemStack());
-            }
-
-            if (proj instanceof AbstractArrow arrow) {
-                shooter.getInventory().addItem(arrow.getItemStack());
-            }
         }
     }
 }
